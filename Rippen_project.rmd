@@ -1,0 +1,363 @@
+---
+title: 'Riipen: ''Request Expiry'''
+author: "Yun Shen, Kengyi Wang, Anzhi Lin, Xipeng Qu(TUT0105 GROUP 105-2)"
+subtitle: Does it help Riipen obtain better responding rate?
+output:
+  beamer_presentation: default
+  ioslides_presentation: default
+  widescreen: yes
+---
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+# echo=FALSE will stop the code chunk from appearing in the knit document
+# warning=FALSE and message=FALSE will stop R messages from appearing in the knit document
+library(tidyverse)
+library(lubridate)
+library(readxl)
+```
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+# This code chunk will run but not appear in the knit document
+# Here is a sample showing you how to read in the data
+requests <- read_excel("data/requests_Mar18_2019.xlsx")
+categories <- read_excel("data/categories.xlsx")
+courses <- read_excel("data/courses.xlsx")
+educatoraccounts <- read_excel("data/educatoraccounts.xlsx")
+employeraccounts <- read_excel("data/employeraccounts.xlsx")
+projects <- read_excel("data/projects.xlsx")
+studentaccounts <- read_excel("data/studentaccounts.xlsx")
+teams <- read_excel("data/teams.xlsx")
+```
+## INTRODUCTION
+
+Riipen is a Vancouver-based education technology company; they offer an experiential learning. Riipen has a two-sided marketplace feature that employers to apply to work with professors, and also allows professors to apply to work with companies. A challenge that was encountered early on was that some users were not responding to requests, or were responding very slowly, causing frustration for the other party. On November 21, 2018, Riipen launched a "request expiry" feature which requires users to respond to requests with 14 days, or they will expire. In our study, we use different statistical methods to find out if this new feauture successfully motivates the users to repond the requests more quickly and actively. 
+ 
+
+## OBJECTIVES
+
+1. Find out the difference in response time before and after the implementation of the expiry feature given by Riipen. 
+2. Find out how acceptance rate is affected in terms of the efficiency of the expiry feature.
+3. Find out how expiry rate is affected after the expiry feature is implemented.
+4. Give the conclusion whether the implementation of the new expiry feature affect users' behaviours and initiatives to accept the requests?
+
+
+## DATA SUMMARY
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+request_new <- requests %>%
+  mutate(created_date = (requests$`Day of Created At`%>%
+  dmy())) %>%
+  
+  mutate(updated_date = (requests$`Day of Updated At`%>%
+  dmy())) %>%
+  mutate(expired_date = (requests$`Day of Expired At`%>%
+  dmy())) %>%
+  mutate(before_or_after = ifelse(created_date >= "2018-11-21", yes = "after", no = "before")) %>%
+  mutate(afterchange = created_date >= "2018-11-21") %>%
+  mutate(responding_time = updated_date - created_date)
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+glimpse(request_new)
+```
+
+
+
+
+## STATISTICAL METHODS 1: GRAPHS AND TABLES
+
+
+**Number of Requests: Before V.S. After**
+```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.width=6, fig.height=2.5}
+n_request_before <- request_new %>%
+  filter(created_date <= ("2018-11-21")) %>%
+  filter(created_date != ("2018-08-30")) %>% 
+  count() %>%
+  as.numeric()
+
+n_request_after <- request_new %>%
+  filter(created_date >= ("2018-11-21")) %>%
+  count() %>%
+  as.numeric()
+
+summarise(request_new, n_request_before, n_request_after)
+```
+
+
+---
+
+
+**Requests by State: Before V.S. After**
+```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.width=6, fig.height=2.5}
+# state count before and after
+before<-request_new %>%
+  filter(created_date <= ("2018-11-21")) %>%
+  filter(created_date != ("2018-08-30")) %>%
+  count(`State`) %>%
+  ggplot(aes(`State`, n)) + geom_col()
+
+after<-request_new %>%
+  filter(created_date >= ("2018-11-21")) %>%
+  count(State) %>%
+  ggplot(aes(`State`, n)) + geom_col()
+
+before
+```
+```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.width=6, fig.height=2.5}
+after
+```
+
+---
+
+
+
+**Before**
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+before<-request_new %>%
+  filter(created_date <= ("2018-11-21")) %>%
+  filter(created_date != ("2018-08-30"))%>%
+  select(created_date,`Requestable Model`,State)%>%
+  count(State)
+after<-request_new %>%
+  filter(created_date >= ("2018-11-21")) %>%
+  select(created_date,`Requestable Model`,State)%>%
+  count(State)
+before
+```
+**After**
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+after
+
+```
+
+
+
+## STATISTICAL METHODS 2: BOXPLOTS
+
+**Responding Time Before**
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.width=6, fig.height=2.5}
+#responce period before nov 21 2018
+create_date_before<-request_new %>%
+  filter(created_date < ("2018-11-21")) %>%
+  filter(created_date != "2018-08-30") %>%
+  mutate(responding_time = updated_date - created_date)
+
+ggplot(create_date_before, aes(y=responding_time)) + geom_boxplot()
+
+quantile(create_date_before$responding_time, c(0.25, 0.5, 0.75))
+```
+
+---
+
+**Responding Time After**
+
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.width=6, fig.height=2.5}
+#responce period after nov 21 2018
+create_date_after<-request_new %>%
+  filter(created_date >= ("2018-11-21")) %>%
+  mutate(responding_time = updated_date - created_date)
+
+ggplot(create_date_after, aes(y=responding_time)) + geom_boxplot()
+quantile(create_date_after$responding_time, c(0.25, 0.5, 0.75))
+```
+
+
+## STATISTICAL METHODS 3: HISTOGRAM
+
+
+
+**Responding Time - Before**
+```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.width=6, fig.height=2.5}
+create_date_before %>%
+  summarise(mean_responding_time = mean(responding_time),
+            median_responding_time = median(responding_time), 
+            sd = sd(responding_time),
+            n = n()) 
+request_new %>%
+  filter(before_or_after == "before") %>%
+  filter(created_date != "2018-08-30") %>%
+  ggplot(aes(x = responding_time)) + geom_histogram(bins = 10)
+```
+
+
+
+---
+
+
+**Responding Time - After**
+```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.width=6, fig.height=2.5}
+create_date_after %>%
+  summarise(mean_responding_time = mean(responding_time),
+            median_responding_time = median(responding_time), 
+            sd = sd(responding_time),
+            n = n())
+
+request_new %>%
+  filter(before_or_after == "after") %>%
+  ggplot(aes(x = responding_time)) + geom_histogram(bins = 10)
+```
+
+
+## STATISTICAL METHODS 4: LINEAR REGRESSION MODEL
+
+Null Hypothesis – The implementation of the ‘request expiry’ feature has no effect on response time.
+
+Alternative Hypothesis – The implementation of the ‘request expiry’ feature has affected the user’s response time.
+
+---
+
+**Responding Time - Before V.S. After**
+```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.width=6, fig.height=2.5}
+request_new %>%
+  filter(created_date != "2018-08-30") %>%
+  ggplot(aes(x=before_or_after, y=responding_time)) + geom_point() 
+  
+mod_rt <- lm(as.numeric(responding_time) ~ before_or_after, data=request_new %>% filter(created_date != "2018-08-30"))
+summary(mod_rt)$coefficients
+```
+
+---
+
+
+
+**R^2**
+```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.width=6, fig.height=2.5}
+r_square <- summary(mod_rt)$r.squared
+r_square
+```
+
+
+
+## STATISTICAL METHODS 5: HYPOTHESIS TESTING
+**Acceptance Rate**
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+#accepting rate
+n_after <- request_new %>% 
+  filter(before_or_after == "after") %>% 
+  summarize(n()) %>%
+  as.numeric()
+n_before <- request_new %>% 
+  filter(before_or_after == "before") %>% 
+  filter(created_date != "2018-08-30") %>%
+  summarize(n()) %>%
+  as.numeric()
+n_accept_after <- request_new %>% 
+  filter(before_or_after == "after" & `State` == "accepted") %>%
+  summarise(n()) %>%
+  as.numeric()
+n_accept_before <- request_new %>% 
+  filter(before_or_after== "before" & `State` == "accepted" & created_date != "2018-08-30") %>%
+  summarise(n()) %>%
+  as.numeric()
+
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.width=6, fig.height=2.5}
+test_stat <- n_accept_after/n_after - n_accept_before/n_before %>%
+  as.numeric()
+
+summarise(request_new, n_before, n_after, n_accept_before, n_accept_after, test_stat)
+```
+
+**Null Hypothesis – The implementation of the ‘request expiry’ feauture has no effect on the acceptance rate.**
+
+**Alternative Hypothesis – The implementation of the ‘request expiry’ feature has affected the user’s accepting rate.**
+
+---
+
+
+**Acceptance Rate**
+```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.width=7, fig.height=3}
+set.seed(200)
+
+repetitions <- 1000
+simulated_stats <- rep(NA, repetitions)
+
+for (i in 1:repetitions) {
+  d <- sample(c("before", "after", size = 534), replace = TRUE)
+  expire_before <- sum(d=='before') / 769
+  expire_after <- sum(d=='after') / 486
+  p_diff <- expire_after - expire_before
+  simulated_stats[i] <- as.numeric(p_diff)
+}
+
+sim <- data_frame(p_diff = simulated_stats)
+ggplot(sim, aes(x=p_diff)) + geom_histogram(bins = 8, color = 'black', fill = "grey")
+sim %>%
+  filter(p_diff >= abs(test_stat) | p_diff <= -1*abs(test_stat)) %>%
+  summarise(p_value = n() / repetitions)
+```
+---
+
+
+**Expiry Rate**
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+#expire rate
+n_after <- request_new %>% 
+  filter(before_or_after == "after") %>% 
+  summarize(n()) %>%
+  as.numeric()
+n_before <- request_new %>% 
+  filter(before_or_after == "before") %>% 
+  filter(created_date != "2018-08-30") %>%
+  summarize(n())%>%
+  as.numeric()
+n_expire_after <- request_new %>% 
+  filter(before_or_after == "after" & `State` == "expired") %>%
+  summarise(n()) %>%
+  as.numeric()
+n_expire_before <- request_new %>% 
+  filter(before_or_after== "before" & `State` == "expired" & created_date != "2018-08-30") %>%
+  summarise(n()) %>%
+  as.numeric()
+
+test_stat <- n_expire_after/n_after - n_expire_before/n_before %>%
+  as.numeric()
+
+summarise(request_new, n_before, n_after, n_expire_before, n_expire_after, test_stat)
+```
+
+**Null Hypothesis – The implementation of the ‘request expiry’ feature has no effect on the Expiry Rate.**
+
+**Alternative Hypothesis – The implementation of the ‘request expiry’ feature has an effect on the user’s Expiry Rate.**
+
+---
+
+
+
+**Expiry Rate**
+```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.width=7, fig.height=3}
+set.seed(300)
+
+repetitions <- 1000
+simulated_stats <- rep(NA, repetitions)
+
+for (i in 1:repetitions) {
+  d <- sample(c("before", "after", size = 173), replace = TRUE)
+  expire_before <- sum(d=='before') / 769
+  expire_after <- sum(d=='after') / 486
+  p_diff <- expire_after - expire_before
+  simulated_stats[i] <- as.numeric(p_diff)
+}
+
+sim <- data_frame(p_diff = simulated_stats)
+ggplot(sim, aes(x=p_diff)) + geom_histogram(bins = 8, color = 'black', fill = "grey")
+sim %>%
+  filter(p_diff >= abs(test_stat) | p_diff <= -1*abs(test_stat)) %>%
+  summarise(p_value = n() / repetitions)
+```
+
+
+## CONCLUSION
+
+
+
+
+## ACKNOWLEDGEMENT
+
+If you received any help from someone other than your team members you can acknowledge them. For example:   
+*The authors thank Wei for providing information on additional data resources. The authors would like to thank "TA name" for helpful suggestions and comments that improved the presentation of this poster.*
